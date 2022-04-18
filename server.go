@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/alghibrany/simple-go-gin-api/config"
-	"github.com/alghibrany/simple-go-gin-api/controller"
+	v1 "github.com/alghibrany/simple-go-gin-api/handler/v1"
 	"github.com/alghibrany/simple-go-gin-api/middleware"
 	"github.com/alghibrany/simple-go-gin-api/repository"
 	"github.com/alghibrany/simple-go-gin-api/service"
@@ -11,40 +11,47 @@ import (
 )
 
 var (
-	db             *gorm.DB                  = config.SetupDatabaseConnection()
-	userRepository repository.UserRepository = repository.NewUserRepository(db)
-	bookRepository repository.BookRepository = repository.NewBookRepository(db)
-	userService    service.UserService       = service.NewUserService(userRepository)
-	jwtService     service.JWTService        = service.NewJWTService()
-	authService    service.AuthService       = service.NewAuthService(userRepository)
-	bookService    service.BookService       = service.NewBookService(bookRepository)
-	authController controller.AuthController = controller.NewAuthController(authService, jwtService)
-	userController controller.UserController = controller.NewUserController(userService, jwtService)
-	bookController controller.BookController = controller.NewBookController(bookService, jwtService)
+	db             *gorm.DB               = config.SetupDatabaseConnection()
+	userRepo       repository.UserRepository    = repository.NewUserRepo(db)
+	productRepo    repository.ProductRepository = repository.NewProductRepo(db)
+	authService    service.AuthService    = service.NewAuthService(userRepo)
+	jwtService     service.JWTService     = service.NewJWTService()
+	userService    service.UserService    = service.NewUserService(userRepo)
+	productService service.ProductService = service.NewProductService(productRepo)
+	authHandler    v1.AuthHandler         = v1.NewAuthHandler(authService, jwtService, userService)
+	userHandler    v1.UserHandler         = v1.NewUserHandler(userService, jwtService)
+	productHandler v1.ProductHandler      = v1.NewProductHandler(productService, jwtService)
 )
 
 func main() {
 	defer config.CloseDatabaseConnection(db)
-	r := gin.Default()
-	authRoutes := r.Group("api/auth")
+	server := gin.Default()
+
+	authRoutes := server.Group("api/auth")
 	{
-		authRoutes.POST("/login", authController.Login)
-		authRoutes.POST("/register", authController.Register)
+		authRoutes.POST("/login", authHandler.Login)
+		authRoutes.POST("/register", authHandler.Register)
 	}
 
-	userRoutes := r.Group("api/user", middleware.AuthorizeJWT(jwtService))
+	userRoutes := server.Group("api/user", middleware.AuthorizeJWT(jwtService))
 	{
-		userRoutes.GET("/profile", userController.Profile)
-		userRoutes.PUT("/profile", userController.Update)
+		userRoutes.GET("/profile", userHandler.Profile)
+		userRoutes.PUT("/profile", userHandler.Update)
 	}
 
-	bookRoutes := r.Group("api/books", middleware.AuthorizeJWT(jwtService))
+	productRoutes := server.Group("api/product", middleware.AuthorizeJWT(jwtService))
 	{
-		bookRoutes.GET("/", bookController.All)
-		bookRoutes.POST("/", bookController.Insert)
-		bookRoutes.GET("/:id", bookController.FindByID)
-		bookRoutes.PUT("/:id", bookController.Update)
-		bookRoutes.DELETE("/:id", bookController.Delete)
+		productRoutes.GET("/", productHandler.All)
+		productRoutes.POST("/", productHandler.CreateProduct)
+		productRoutes.GET("/:id", productHandler.FindOneProductByID)
+		productRoutes.PUT("/:id", productHandler.UpdateProduct)
+		productRoutes.DELETE("/:id", productHandler.DeleteProduct)
 	}
-	r.Run()
+
+	checkRoutes := server.Group("api/check")
+	{
+		checkRoutes.GET("health", v1.Health)
+	}
+
+	server.Run()
 }

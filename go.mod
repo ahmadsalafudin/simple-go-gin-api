@@ -5,13 +5,22 @@ go 1.15
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-gonic/gin v1.7.7
-	github.com/go-playground/validator/v10 v10.4.1
-	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/go-playground/validator v9.31.0+incompatible // indirect
+	github.com/go-playground/validator/v10 v10.5.0 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/joho/godotenv v1.4.0
-	github.com/mashingan/smapping v0.1.13
-	github.com/ydhnwb/golang_api v0.0.0-20210821145656-97a206998698
-	golang.org/x/crypto v0.0.0-20201203163018-be400aefbc4c
-	golang.org/x/text v0.3.2
-	gorm.io/driver/mysql v1.3.3
-	gorm.io/gorm v1.23.4
+	github.com/json-iterator/go v1.1.10 // indirect
+	github.com/leodido/go-urn v1.2.1 // indirect
+	github.com/mashingan/smapping v0.1.6
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/ugorji/go v1.2.5 // indirect
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	google.golang.org/genproto v0.0.0-20210416161957-9910b6c460de
+	google.golang.org/protobuf v1.26.0
+	gopkg.in/go-playground/validator.v9 v9.31.0
+	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gorm.io/driver/postgres v1.3.4
+	gorm.io/gorm v1.23.1
 )

@@ -8,70 +8,58 @@ import (
 	"gorm.io/gorm"
 )
 
-//UserRepository is contract what userRepository can do to db
 type UserRepository interface {
-	InsertUser(user entity.User) entity.User
-	UpdateUser(user entity.User) entity.User
-	VerifyCredential(email string, password string) interface{}
-	IsDuplicateEmail(email string) (tx *gorm.DB)
-	FindByEmail(email string) entity.User
-	ProfileUser(userID string) entity.User
+	InsertUser(user entity.User) (entity.User, error)
+	UpdateUser(user entity.User) (entity.User, error)
+	FindByEmail(email string) (entity.User, error)
+	FindByUserID(userID string) (entity.User, error)
 }
 
-type userConnection struct {
+type userRepo struct {
 	connection *gorm.DB
 }
 
-//NewUserRepository is creates a new instance of UserRepository
-func NewUserRepository(db *gorm.DB) UserRepository {
-	return &userConnection{
-		connection: db,
+func NewUserRepo(connection *gorm.DB) UserRepository {
+	return &userRepo{
+		connection: connection,
 	}
 }
 
-func (db *userConnection) InsertUser(user entity.User) entity.User {
+func (c *userRepo) InsertUser(user entity.User) (entity.User, error) {
 	user.Password = hashAndSalt([]byte(user.Password))
-	db.connection.Save(&user)
-	return user
+	c.connection.Save(&user)
+	return user, nil
 }
 
-func (db *userConnection) UpdateUser(user entity.User) entity.User {
+func (c *userRepo) UpdateUser(user entity.User) (entity.User, error) {
 	if user.Password != "" {
 		user.Password = hashAndSalt([]byte(user.Password))
 	} else {
 		var tempUser entity.User
-		db.connection.Find(&tempUser, user.ID)
+		c.connection.Find(&tempUser, user.ID)
 		user.Password = tempUser.Password
 	}
 
-	db.connection.Save(&user)
-	return user
+	c.connection.Save(&user)
+	return user, nil
 }
 
-func (db *userConnection) VerifyCredential(email string, password string) interface{} {
+func (c *userRepo) FindByEmail(email string) (entity.User, error) {
 	var user entity.User
-	res := db.connection.Where("email = ?", email).Take(&user)
-	if res.Error == nil {
-		return user
+	res := c.connection.Where("email = ?", email).Take(&user)
+	if res.Error != nil {
+		return user, res.Error
 	}
-	return nil
+	return user, nil
 }
 
-func (db *userConnection) IsDuplicateEmail(email string) (tx *gorm.DB) {
+func (c *userRepo) FindByUserID(userID string) (entity.User, error) {
 	var user entity.User
-	return db.connection.Where("email = ?", email).Take(&user)
-}
-
-func (db *userConnection) FindByEmail(email string) entity.User {
-	var user entity.User
-	db.connection.Where("email = ?", email).Take(&user)
-	return user
-}
-
-func (db *userConnection) ProfileUser(userID string) entity.User {
-	var user entity.User
-	db.connection.Preload("Books").Preload("Books.User").Find(&user, userID)
-	return user
+	res := c.connection.Where("id = ?", userID).Take(&user)
+	if res.Error != nil {
+		return user, res.Error
+	}
+	return user, nil
 }
 
 func hashAndSalt(pwd []byte) string {

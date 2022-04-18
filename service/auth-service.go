@@ -1,64 +1,46 @@
 package service
 
 import (
+	"errors"
 	"log"
 
-	"github.com/alghibrany/simple-go-gin-api/dto"
-	"github.com/alghibrany/simple-go-gin-api/entity"
 	"github.com/alghibrany/simple-go-gin-api/repository"
-	"github.com/mashingan/smapping"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService interface {
-	VerifyCredential(email string, password string) interface{}
-	CreateUser(user dto.RegisterDTO) entity.User
-	FindByEmail(email string) entity.User
-	IsDuplicateEmail(email string) bool
+	VerifyCredential(email string, password string) error
+	// CreateUser(user dto.) entity.User
 }
 
 type authService struct {
-	userRepository repository.UserRepository
+	userRepo repository.UserRepository
 }
 
-func NewAuthService(userRepo repository.UserRepository) AuthService  {
+func NewAuthService(userRepo repository.UserRepository) AuthService {
 	return &authService{
-		userRepository: userRepo,
+		userRepo: userRepo,
 	}
 }
 
-func (service *authService) VerifyCredential(email string, password string) interface{} {
-	res := service.userRepository.VerifyCredential(email, password)
-	if v, ok := res.(entity.User); ok {
-		comparedPassword := comparedPassword(v.Password, []byte(password))
-		if v.Email == email && comparedPassword {
-			return res
-		}
-		return false
-	}
-	return true
-}
-
-func (service *authService) CreateUser(user dto.RegisterDTO) entity.User  {
-	userToCreate := entity.User{}
-	err := smapping.FillStruct(&userToCreate, smapping.MapFields(&user))
+func (c *authService) VerifyCredential(email string, password string) error {
+	user, err := c.userRepo.FindByEmail(email)
 	if err != nil {
-		log.Printf("Failed map %v " , err)
+		println("hehe")
+		println(err.Error())
+		return err
 	}
-	res := service.userRepository.InsertUser(userToCreate)
-	return res
+
+	isValidPassword := comparePassword(user.Password, []byte(password))
+	if !isValidPassword {
+		return errors.New("failed to login. check your credential")
+	}
+
+	return nil
+
 }
 
-func (service *authService) FindByEmail(email string) entity.User  {
-	return service.userRepository.FindByEmail(email)
-}
-
-func (service *authService) IsDuplicateEmail(email string) bool  {
-	res := service.userRepository.IsDuplicateEmail(email)
-	return !(res.Error == nil)
-}
-
-func comparedPassword(hashedPwd string, plainPassword []byte) bool {
+func comparePassword(hashedPwd string, plainPassword []byte) bool {
 	byteHash := []byte(hashedPwd)
 	err := bcrypt.CompareHashAndPassword(byteHash, plainPassword)
 	if err != nil {
